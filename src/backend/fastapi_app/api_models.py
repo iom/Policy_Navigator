@@ -68,7 +68,7 @@ class ThoughtStep(BaseModel):
 
 
 class RAGContext(BaseModel):
-    data_points: dict[int, ItemPublic]
+    data_points: dict[str, ItemPublic]
     thoughts: list[ThoughtStep]
     followup_questions: Optional[list[str]] = None
 
