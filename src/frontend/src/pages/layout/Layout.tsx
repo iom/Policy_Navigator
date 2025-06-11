@@ -11,7 +11,7 @@ const Layout = () => {
                     <Link to="/" className={styles.headerTitleContainer}>
                         <h3 className={styles.headerTitle}>IOM Policies Navigator</h3>
                     </Link>
-                    <h4 className={styles.headerRightText}>Your AI Assistant to chat with IOM Policies</h4>
+                    <h4 className={styles.headerRightText}>Your AI Assistant to chat with all IOM <a href="https://hrhandbook.iom.int/hr-policy-framework" target="_blank">HR Policies</a> and <a href="https://iomint.sharepoint.com/sites/DMSPortal/Instructions/Forms/AllItems.aspx" target="_blank">Instructions</a></h4>
                 </div>
             </header>
 

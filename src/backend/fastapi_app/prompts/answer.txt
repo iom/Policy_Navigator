@@ -4,4 +4,4 @@ Answer ONLY with elements referenced in any IOM HR Policies.
 If there isn't enough information below, say you don't know.
 Do not generate answers that don't use the sources below.
 Use square brackets to reference the source, for example [52].
-Don't combine citations, list each product separately, for example [27][51].
+Don't combine citations, list each policy separately, for example [27][51].

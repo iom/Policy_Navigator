@@ -150,3 +150,5 @@ static/
 # Playwright test trace
 test-results/
 .azurekey
+
+data/
