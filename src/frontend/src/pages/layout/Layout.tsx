@@ -1,7 +1,7 @@
 import { Outlet, Link } from "react-router-dom";
 
 import styles from "./Layout.module.css";
-
+import Logo from "../../assets/iom-white.svg";  
 
 const Layout = () => {
     return (
@@ -9,7 +9,8 @@ const Layout = () => {
             <header className={styles.header} role={"banner"}>
                 <div className={styles.headerContainer}>
                     <Link to="/" className={styles.headerTitleContainer}>
-                        <h3 className={styles.headerTitle}>IOM Policies Navigator</h3>
+                        <img src={Logo} alt="IOM" className={styles.headerLogo} />
+                        <h3 className={styles.headerTitle}>| Policies Navigator</h3>
                     </Link>
                     <h4 className={styles.headerRightText}>Your AI Assistant to chat with all IOM <a href="https://hrhandbook.iom.int/hr-policy-framework"
                                 target="_blank"

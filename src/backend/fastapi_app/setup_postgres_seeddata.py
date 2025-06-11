@@ -35,7 +35,7 @@ async def seed_data(engine):
     async with async_sessionmaker(engine, expire_on_commit=False)() as session:
         # Insert the objects from the JSON file into the database
         current_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(current_dir, "seed_data.json")) as f:
+        with open(os.path.join(current_dir, "seed_data.json"), encoding="utf-8") as f:
             seed_data_objects = json.load(f)
             for seed_data_object in seed_data_objects:
                 db_item = await session.execute(select(Item).filter(Item.id == seed_data_object["id"]))
@@ -43,7 +43,6 @@ async def seed_data(engine):
                     continue
                 attrs = {key: value for key, value in seed_data_object.items()}
                 attrs["embedding_3l"] = np.array(seed_data_object["embedding_3l"])
-                attrs["embedding_nomic"] = np.array(seed_data_object["embedding_nomic"])
                 column_names = ", ".join(attrs.keys())
                 values = ", ".join([f":{key}" for key in attrs.keys()])
                 await session.execute(text(f"INSERT INTO {table_name} ({column_names}) VALUES ({values})"), attrs)
