@@ -69,10 +69,10 @@
         "value": "${OPENAI_EMBED_HOST=azure}"
       },
       "embedModelName":{
-        "value": "${AZURE_OPENAI_EMBED_MODEL=text-embedding-3-large}"
+        "value": "${AZURE_OPENAI_EMBED_MODEL=text-embedding-3-small}"
       },
       "embedDeploymentName": {
-        "value": "${AZURE_OPENAI_EMBED_DEPLOYMENT=text-embedding-3-large}"
+        "value": "${AZURE_OPENAI_EMBED_DEPLOYMENT=text-embedding-3-small}"
       },
       "embedDeploymentVersion":{
         "value": "${AZURE_OPENAI_EMBED_DEPLOYMENT_VERSION=1}"
@@ -84,7 +84,7 @@
         "value": "${AZURE_OPENAI_EMBED_DEPLOYMENT_CAPACITY=30}"
       },
       "embedDimensions": {
-        "value": "${AZURE_OPENAI_EMBED_DIMENSIONS=1024}"
+        "value": "${AZURE_OPENAI_EMBED_DIMENSIONS=1536}"
       },
       "openAIComKey": {
         "value": "${OPENAICOM_KEY}"

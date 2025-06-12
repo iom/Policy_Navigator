@@ -17,12 +17,10 @@ from openai.types.responses import EasyInputMessageParam, ResponseInputItemParam
 
 from fastapi_app.api_models import (
     AIChatRoles,
-    BrandFilter,
     ChatRequestOverrides,
     Filter,
     ItemPublic,
     Message,
-    PriceFilter,
     RAGContext,
     RetrievalResponse,
     RetrievalResponseDelta,
@@ -78,26 +76,18 @@ class AdvancedRAGChat(RAGChatBase):
     async def search_database(
         self,
         search_query: str,
-        price_filter: Optional[PriceFilter] = None,
-        brand_filter: Optional[BrandFilter] = None,
     ) -> SearchResults:
         """
         Search PostgreSQL database for relevant products based on user query
 
         Args:
-            search_query: English query string to use for full text search, e.g. 'red shoes'.
-            price_filter: Filter search results based on price of the product
-            brand_filter: Filter search results based on brand of the product
+            search_query: English query string to use for full text search, e.g. 'whistleblower'.
 
         Returns:
             List of formatted items that match the search query and filters
         """
         # Only send non-None filters
         filters: list[Filter] = []
-        if price_filter:
-            filters.append(price_filter)
-        if brand_filter:
-            filters.append(brand_filter)
         results = await self.searcher.search_and_embed(
             search_query,
             top=self.chat_params.top,

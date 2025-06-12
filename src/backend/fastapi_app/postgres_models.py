@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Index
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -15,12 +16,12 @@ class Item(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     filename: Mapped[str] = mapped_column()
     fileurl: Mapped[str] = mapped_column()
-    page: Mapped[str] = mapped_column()
+    content: Mapped[str] = mapped_column()
     typedoc: Mapped[str] = mapped_column()
     pagenumber: Mapped[int] = mapped_column()
     chunk: Mapped[int] = mapped_column()
     # Embeddings for different models:
-    embedding_3l: Mapped[Vector] = mapped_column(Vector(1024), nullable=True)  # text-embedding-3-large
+    embedding_3l: Mapped[Vector] = mapped_column(Vector(1536), nullable=True)  # text-embedding-3-large
 
     def to_dict(self, include_embedding: bool = False):
         model_dict = {column.name: getattr(self, column.name) for column in self.__table__.columns}
@@ -30,11 +31,19 @@ class Item(Base):
             del model_dict["embedding_3l"]
         return model_dict
 
+
     def to_str_for_rag(self):
-        return f"Name:{self.name} Description:{self.description} Price:{self.price} Brand:{self.brand} Type:{self.type}"
+        return (
+            f"Filename: {self.filename} | "
+            f"File URL: {self.fileurl} | "
+            f"Page Number: {self.pagenumber} | "
+            f"Chunk: {self.chunk} | "
+            f"Document Type: {self.typedoc} | "
+            f"Content: {self.content}"
+        )
 
     def to_str_for_embedding(self):
-        return f"Name: {self.name} Description: {self.description} Type: {self.type}"
+        return f"Content: {self.content} Filename: {self.filename} Page Number: {self.pagenumber}"
 
 
 """

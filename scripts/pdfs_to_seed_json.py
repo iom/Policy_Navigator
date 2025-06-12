@@ -32,12 +32,125 @@ client = AzureOpenAI(
 
 
 # === Config ===
-PDF_DIRS = ["../data/HR", "../data/DMS_instructions"]
+PDF_DIRS = ["../data/HR1", "../data/DMS_instructions1"]
 BASE_FILEURLS = ["https://hrhandbook.iom.int/system/files/policies/",
                  "https://iomint.sharepoint.com/sites/DMSPortal/Instructions/"]
 DOCTYPES = ["HR Policy", "Administration Instruction"]
 
-OUTPUT_FILE = "seed_data_iom_all.json"
+OUTPUT_FILE = "seed_data_iom_all-small3.json"
+
+
+# === File conversion ====
+
+import subprocess
+import platform
+from pathlib import Path
+import shutil
+
+def find_libreoffice_exec():
+    """
+    Finds the appropriate LibreOffice command based on OS.
+    Returns path to LibreOffice CLI tool or raises an error.
+    """
+    system = platform.system()
+
+    # Windows typically installs LibreOffice here
+    if system == "Windows":
+        possible_paths = [
+            r"C:\Program Files\LibreOffice\program\soffice.exe",
+            r"C:\Program Files (x86)\LibreOffice\program\soffice.exe"
+        ]
+        for path in possible_paths:
+            if Path(path).exists():
+                return path
+        raise FileNotFoundError("LibreOffice not found on Windows. Please install it or set it in PATH.")
+    
+    # On macOS, typically installed via brew or dmg
+    elif system == "Darwin":
+        possible_paths = [
+            "/Applications/LibreOffice.app/Contents/MacOS/soffice"
+        ]
+        for path in possible_paths:
+            if Path(path).exists():
+                return path
+        # fallback to PATH
+        return shutil.which("soffice") or shutil.which("libreoffice")
+
+    # On Linux, assume it's installed via apt/yum/pacman
+    elif system == "Linux":
+        return shutil.which("libreoffice") or shutil.which("soffice")
+
+    else:
+        raise RuntimeError(f"Unsupported operating system: {system}")
+
+def convert_file_to_pdf(input_path, output_path):
+    """
+    Converts Word, Excel, or PowerPoint file to PDF using LibreOffice in headless mode.
+    Works on Windows, macOS, and Linux.
+    """
+    input_path = Path(input_path)
+    output_path = Path(output_path)
+
+    if not input_path.exists():
+        raise FileNotFoundError(f"Input file does not exist: {input_path}")
+
+    try:
+        libreoffice_exec = find_libreoffice_exec()
+        if not libreoffice_exec or not Path(libreoffice_exec).exists():
+            raise FileNotFoundError("LibreOffice executable not found.")
+
+        # LibreOffice generates PDF in the same folder as input, same base name
+        subprocess.run([
+            libreoffice_exec,
+            "--headless",
+            "--convert-to", "pdf",
+            "--outdir", str(output_path.parent),
+            str(input_path)
+        ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        generated_pdf = input_path.with_suffix('.pdf')
+        expected_pdf = output_path
+
+        if generated_pdf.exists():
+            generated_pdf.rename(expected_pdf)
+        elif expected_pdf.exists():
+            pass  # already saved there
+        else:
+            raise FileNotFoundError(f"PDF was not generated for: {input_path.name}")
+
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"LibreOffice failed: {e.stderr.decode().strip()}")
+    except Exception as e:
+        raise RuntimeError(f"Conversion error: {e}")
+    
+from pathlib import Path
+import filetype
+def process_directories(directories):
+    for dir_path in directories:
+        directory = Path(dir_path)
+        if not directory.exists():
+            print(f"Directory {directory} does not exist, skipping")
+            continue
+            
+        print(f"Processing directory: {directory}")
+        for file_path in directory.iterdir():
+            if file_path.is_file():
+                try:
+                    # Filetype validation
+                    kind = filetype.guess(file_path)
+                    actual_extension = file_path.suffix.lower().lstrip('.')
+                    
+                    # Check if it's already a PDF by detected type or file extension
+                    is_pdf = (kind and kind.extension.lower() == 'pdf') or actual_extension == 'pdf'
+                    
+                    if not is_pdf:
+                        pdf_path = file_path.with_suffix('.pdf')
+                        print(f"The file {file_path} is not a pdf and shall be converted")
+                        convert_file_to_pdf(file_path, pdf_path)
+                except Exception as e:
+                    print(f"Error processing {file_path}: {str(e)}")
+
+process_directories(PDF_DIRS)
 
 # === settings ===
 MAX_TOKENS_PER_CHUNK = 400
@@ -45,7 +158,7 @@ MAX_RETRIES = 3
 THREAD_WORKERS = 5
 
 # === Tokenizer ===
-tokenizer = tiktoken.encoding_for_model("text-embedding-3-large")  # compatible with Azure
+tokenizer = tiktoken.encoding_for_model("text-embedding-3-small")  # compatible with Azure
 
 def count_tokens(text):
     return len(tokenizer.encode(text))
@@ -137,16 +250,20 @@ def extract_text_by_page(file_path):
         print(f"❌ fitz failed for {file_path}, trying fallback: {e}")
         return fallback_pdfplumber_text(file_path)
 
+EXPECTED_EMBED_DIM = 1536  # for text-embedding-3-small
+
 def build_chunk_record(chunk_text, metadata):
     embedding = get_embedding_with_retry(chunk_text)
-    if embedding:
-        return {
-            **metadata,
-            "embedding_3l": embedding
-        }
-    return None
 
+    if not embedding:
+        print(f"❌ Empty embedding for file {metadata['filename']} chunk {metadata['chunk']}")
+        return None
 
+    if len(embedding) != EXPECTED_EMBED_DIM:
+        print(f"❌ Invalid embedding dimension ({len(embedding)}) for file {metadata['filename']} chunk {metadata['chunk']}")
+        return None
+
+    return {**metadata, "embedding_3l": embedding}
 
 
 def process_file(filename, folder_path, base_fileurl, doctype):
@@ -162,7 +279,7 @@ def process_file(filename, folder_path, base_fileurl, doctype):
             metadata = {
                 "filename": filename,
                 "fileurl": fileurl,
-                "page": page_text,
+                "content": page_text,
                 "typedoc": doctype,
                 "pagenumber": page_num,
                 "chunk": chunk_idx
@@ -178,6 +295,10 @@ def process_all_pdfs():
 
     for folder_path, base_fileurl, doctype in zip(PDF_DIRS, BASE_FILEURLS, DOCTYPES):
         print(f"📁 Scanning folder: {folder_path}")
+
+
+
+
         for filename in os.listdir(folder_path):
             if filename.lower().endswith(".pdf"):
                 print(f"📄 Processing file: {filename}")

@@ -12,10 +12,10 @@ const Layout = () => {
                         <img src={Logo} alt="IOM" className={styles.headerLogo} />
                         <h3 className={styles.headerTitle}>| Policies Navigator</h3>
                     </Link>
-                    <h4 className={styles.headerRightText}>Your AI Assistant to chat with all IOM <a href="https://hrhandbook.iom.int/hr-policy-framework"
+                    <h4 className={styles.headerRightText}>Prompt <a href="https://hrhandbook.iom.int/hr-policy-framework"
                                 target="_blank"
-                                style={{ color: 'rgba(255, 184, 28, 1)' }}> HR Policies</a>{' '}
-                                and{' '}
+                                style={{ color: 'rgba(255, 184, 28, 1)' }}> HR Rules</a>{' '}
+                                & {' '}
                                 <a
                                 href="https://iomint.sharepoint.com/sites/DMSPortal/Instructions/Forms/AllItems.aspx"
                                 target="_blank"
