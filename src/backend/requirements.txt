@@ -52,7 +52,7 @@ click==8.1.7
     # via uvicorn
 colorama==0.4.6
     # via griffe
-cryptography==44.0.3
+cryptography==45.0.4
     # via
     #   azure-identity
     #   msal
