@@ -37,7 +37,7 @@ BASE_FILEURLS = ["https://hrhandbook.iom.int/system/files/policies/",
                  "https://iomint.sharepoint.com/sites/DMSPortal/Instructions/"]
 DOCTYPES = ["HR Policy", "Administration Instruction"]
 
-OUTPUT_FILE = "seed_data_iom_all-small3.json"
+OUTPUT_FILE = "seed_data_iom_all-small5.json"
 
 
 # === File conversion ====
@@ -228,10 +228,84 @@ def fallback_pdfplumber_text(file_path):
         with pdfplumber.open(file_path) as pdf:
             for page in pdf.pages:
                 texts.append(page.extract_text() or "")
+                texts = clean_text(texts)
         return texts
     except Exception as e:
         print(f"❌ Fallback also failed for {file_path}: {e}")
         return []
+
+
+import re
+from typing import Optional
+from datetime import datetime
+
+def clean_text(text: str) -> str:
+    """
+    Perform comprehensive text cleaning tasks, including handling encoding errors, removing noise,
+    and standardizing text format.
+
+    Args:
+        text (str): Extracted text from PDF or other sources.
+
+    Returns:
+        str: Cleaned text.
+    """
+    # Handle encoding errors by removing non-printable characters
+    cleaned_text = ''.join(char for char in text if char.isprintable())
+
+    # Remove excessive whitespace and newlines
+    cleaned_text = ' '.join(cleaned_text.split())
+
+    # Remove common headers, footers, and page numbers
+    headers_footers = [
+        r'Confidential Draft', r'Page \d+ of \d+',
+        r'\b\d+\b', r'\bFooter:\b.*?$', r'\bHeader:\b.*?$'
+    ]
+
+    for pattern in headers_footers:
+        cleaned_text = re.sub(pattern, '', cleaned_text, flags=re.MULTILINE)
+
+    # Correct common typos and errors
+    typo_corrections = {
+        'polciy': 'policy',
+        'departement': 'department',
+        'adress': 'address',
+        'recieve': 'receive'
+    }
+
+    for typo, correction in typo_corrections.items():
+        cleaned_text = re.sub(r'\b' + typo + r'\b', correction, cleaned_text)
+
+    # Standardize date formats
+    def standardize_date(match):
+        date_str = match.group(0)
+        try:
+            date_obj = datetime.strptime(date_str, '%m/%d/%Y')
+            return date_obj.strftime('%Y-%m-%d')
+        except ValueError:
+            try:
+                date_obj = datetime.strptime(date_str, '%d-%b-%y')
+                return date_obj.strftime('%Y-%m-%d')
+            except ValueError:
+                return date_str
+
+    cleaned_text = re.sub(r'\d{2}/\d{2}/\d{4}|\d{2}-\w{3}-\d{2}', standardize_date, cleaned_text)
+
+    # Remove duplicate paragraphs
+    paragraphs = cleaned_text.split('\n')
+    seen_paragraphs = set()
+    unique_paragraphs = []
+
+    for paragraph in paragraphs:
+        if paragraph not in seen_paragraphs:
+            seen_paragraphs.add(paragraph)
+            unique_paragraphs.append(paragraph)
+
+    cleaned_text = '\n'.join(unique_paragraphs)
+
+
+    return cleaned_text
+
 
 def extract_text_by_page(file_path):
     texts = []
@@ -241,7 +315,9 @@ def extract_text_by_page(file_path):
                 try:
                     page = doc[page_num]
                     page_text = page.get_text()
+                    page_text = clean_text(page_text)
                     texts.append(page_text)
+
                 except Exception as page_error:
                     print(f"⚠️ Skipping page {page_num + 1} in {file_path}: {page_error}")
                     texts.append("")
