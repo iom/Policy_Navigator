@@ -57,10 +57,10 @@ class PostgresSearcher:
             """
 
         fulltext_query = f"""
-            SELECT id, RANK () OVER (ORDER BY ts_rank_cd(to_tsvector('english', description), query) DESC)
+            SELECT id, RANK () OVER (ORDER BY ts_rank_cd(to_tsvector('english', content), query) DESC)
                 FROM {table_name}, plainto_tsquery('english', :query) query
-                WHERE to_tsvector('english', description) @@ query {filter_clause_and}
-                ORDER BY ts_rank_cd(to_tsvector('english', description), query) DESC
+                WHERE to_tsvector('english', content) @@ query {filter_clause_and}
+                ORDER BY ts_rank_cd(to_tsvector('english', content), query) DESC
                 LIMIT 20
             """
 
