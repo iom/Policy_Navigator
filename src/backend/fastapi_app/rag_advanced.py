@@ -47,6 +47,7 @@ class AdvancedRAGChat(RAGChatBase):
         chat_model: str,
         chat_deployment: Optional[str],  # Not needed for non-Azure OpenAI
     ):
+        super().__init__()
         self.searcher = searcher
         self.chat_params = self.get_chat_params(messages, overrides)
         self.model_for_thoughts = (
@@ -73,31 +74,49 @@ class AdvancedRAGChat(RAGChatBase):
             ),
         )
 
+    
+
+    
     async def search_database(
         self,
         search_query: str,
     ) -> SearchResults:
-        """
-        Search PostgreSQL database for relevant products based on user query
-
-        Args:
-            search_query: English query string to use for full text search, e.g. 'whistleblower'.
-
-        Returns:
-            List of formatted items that match the search query and filters
-        """
-        # Only send non-None filters
+        """Search PostgreSQL database with error handling"""
+        print(f"DEBUG - Searching with query: {search_query}")
+        
         filters: list[Filter] = []
-        results = await self.searcher.search_and_embed(
-            search_query,
-            top=self.chat_params.top,
-            enable_vector_search=self.chat_params.enable_vector_search,
-            enable_text_search=self.chat_params.enable_text_search,
-            filters=filters,
-        )
-        return SearchResults(
-            query=search_query, items=[ItemPublic.model_validate(item.to_dict()) for item in results], filters=filters
-        )
+        try:
+            results = await self.searcher.search_and_embed(
+                query_text=search_query,
+                top=self.chat_params.top,
+                enable_vector_search=self.chat_params.enable_vector_search,
+                enable_text_search=self.chat_params.enable_text_search,
+                filters=filters,
+            )
+            print(f"DEBUG - Found {len(results)} results")
+            return SearchResults(
+                query=search_query,
+                items=[ItemPublic.model_validate(item.to_dict()) for item in results],
+                filters=filters
+            )
+        except Exception as e:
+            print(f"Search failed: {e}")
+            # Fall back to text-only search if vector search fails
+            if "dimensions" in str(e):
+                print("Attempting text-only search...")
+                results = await self.searcher.search_and_embed(
+                    query_text=search_query,
+                    top=self.chat_params.top,
+                    enable_vector_search=False,  # Disable vector search
+                    enable_text_search=True,
+                    filters=filters,
+                )
+                return SearchResults(
+                    query=search_query,
+                    items=[ItemPublic.model_validate(item.to_dict()) for item in results],
+                    filters=filters
+                )
+            return SearchResults(query=search_query, items=[], filters=filters)
 
     async def prepare_context(self) -> tuple[list[ItemPublic], list[ThoughtStep]]:
         few_shots: list[ResponseInputItemParam] = json.loads(self.query_fewshots)
@@ -105,12 +124,39 @@ class AdvancedRAGChat(RAGChatBase):
         new_user_message = EasyInputMessageParam(role="user", content=user_query)
         all_messages = few_shots + self.chat_params.past_messages + [new_user_message]
 
-        run_results = await Runner.run(self.search_agent, input=all_messages)
-        most_recent_response = run_results.new_items[-1]
-        if isinstance(most_recent_response, ToolCallOutputItem):
-            search_results = most_recent_response.output
-        else:
-            raise ValueError("Error retrieving search results, model did not call tool properly")
+        try:
+            run_results = await Runner.run(self.search_agent, input=all_messages)
+            most_recent_response = run_results.new_items[-1]
+            
+            if not isinstance(most_recent_response, ToolCallOutputItem):
+                raise ValueError("Model did not call search tool properly")
+
+            search_results = None
+            if isinstance(most_recent_response.output, SearchResults):
+                search_results = most_recent_response.output
+            else:
+                try:
+                    search_results = SearchResults.model_validate_json(most_recent_response.output)
+                except Exception as e:
+                    print(f"Failed to parse search results: {e}")
+                    search_results = SearchResults(
+                        query=self.chat_params.original_user_query,
+                        items=[],
+                        filters=[]
+                    )
+
+            # If we got empty results, try a direct search as fallback
+            if not search_results.items:
+                print("Falling back to direct search...")
+                search_results = await self.search_database(self.chat_params.original_user_query)
+
+        except Exception as e:
+            print(f"Search failed: {e}")
+            search_results = SearchResults(
+                query=self.chat_params.original_user_query,
+                items=[],
+                filters=[]
+            )
 
         thoughts = [
             ThoughtStep(
@@ -135,6 +181,8 @@ class AdvancedRAGChat(RAGChatBase):
             ),
         ]
         return search_results.items, thoughts
+
+ 
 
     async def answer(
         self,
@@ -171,7 +219,7 @@ class AdvancedRAGChat(RAGChatBase):
         run_results = Runner.run_streamed(
             self.answer_agent,
             input=self.chat_params.past_messages
-            + [{"content": self.prepare_rag_request(self.chat_params.original_user_query, items), "role": "user"}],  # noqa
+            + [{"content": self.prepare_rag_request(self.chat_params.original_user_query, items), "role": "user"}],
         )
 
         yield RetrievalResponseDelta(

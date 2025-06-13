@@ -47,9 +47,8 @@ class ItemPublic(BaseModel):
     fileurl: str
     pagenumber: int
     chunk: int
-    page: str
+    content: str
     typedoc: str
-
 
     def to_str_for_rag(self):
         return (
@@ -58,7 +57,7 @@ class ItemPublic(BaseModel):
             f"Page Number: {self.pagenumber} | "
             f"Chunk: {self.chunk} | "
             f"Document Type: {self.typedoc} | "
-            f"Content: {self.page}"
+            f"Content: {self.content}"
         )
 
 class ItemWithDistance(ItemPublic):

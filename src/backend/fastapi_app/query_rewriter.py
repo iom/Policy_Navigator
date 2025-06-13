@@ -31,6 +31,7 @@ def build_search_function() -> list[ChatCompletionToolParam]:
 
 def extract_search_arguments(original_user_query: str, chat_completion: ChatCompletion):
     response_message = chat_completion.choices[0].message
+    search_query = original_user_query  # fallback to original query
     search_query = None
     filters = []
     if response_message.tool_calls:
@@ -40,6 +41,10 @@ def extract_search_arguments(original_user_query: str, chat_completion: ChatComp
             function = tool.function
             if function.name == "search_database":
                 arg = json.loads(function.arguments)
+                search_query = arg.get("search_query", original_user_query)
+                # If you have filters in the future, extract them here
+                # filters = args.get("filters", [])
+                break  # we found our search query, no need to check other tools
 
     elif query_text := response_message.content:
         search_query = query_text.strip()
