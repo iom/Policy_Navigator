@@ -1,36 +1,36 @@
 [
   {
     "role": "user",
-    "content": "good options for climbing gear that can be used outside?"
+    "content": "What is the annual leave entitlement for a General Service staff member?"
   },
   {
-    "id": "madeup",
-    "call_id": "call_abc123",
-    "name": "search_database",
-    "arguments": "{\"search_query\":\"climbing gear outside\"}",
+    "id": "hr_policy_query",
+    "call_id": "call_iom123",
+    "name": "search_hr_policies",
+    "arguments": "{\"search_query\":\"annual leave entitlement General Service\"}",
     "type": "function_call"
   },
   {
-    "id": "madeupoutput",
-    "call_id": "call_abc123",
-    "output": "Search results for climbing gear that can be used outside: ...",
+    "id": "hr_policy_output",
+    "call_id": "call_iom123",
+    "output": "According to IOM HR Policy, General Service staff are entitled to 2.5 working days of annual leave per month of service [Policy 4.1][Rule 12.3].",
     "type": "function_call_output"
   },
   {
     "role": "user",
-    "content": "are there any shoes less than $50?"
+    "content": "Is there a probation period for new Professional category staff?"
   },
   {
-    "id": "madeup",
-    "call_id": "call_abc456",
-    "name": "search_database",
-    "arguments": "{\"search_query\":\"shoes\",\"price_filter\":{\"comparison_operator\":\"<\",\"value\":50}}",
+    "id": "hr_policy_query",
+    "call_id": "call_iom456",
+    "name": "search_hr_policies",
+    "arguments": "{\"search_query\":\"probation period Professional category\"}",
     "type": "function_call"
   },
   {
-    "id": "madeupoutput",
-    "call_id": "call_abc456",
-    "output": "Search results for shoes cheaper than 50: ...",
+    "id": "hr_policy_output",
+    "call_id": "call_iom456",
+    "output": "Yes, Professional category staff undergo a probation period of six months, as per IOM HR Rule 8.2 [Rule 8.2].",
     "type": "function_call_output"
   }
 ]

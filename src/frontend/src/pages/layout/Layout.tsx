@@ -15,12 +15,24 @@ const Layout = () => {
                     <h4 className={styles.headerRightText}>Prompt <a href="https://hrhandbook.iom.int/hr-policy-framework"
                                 target="_blank"
                                 style={{ color: 'rgba(255, 184, 28, 1)' }}> HR Rules</a>{' '}
-                                & {' '}
+                                , {' '}
                                 <a
                                 href="https://iomint.sharepoint.com/sites/DMSPortal/Instructions/Forms/AllItems.aspx"
                                 target="_blank"
                                 style={{ color: 'rgba(255, 184, 28, 1)' }} >
                                 Admin Instructions
+                                </a>, {' '}
+                                <a
+                                href="https://iomint.sharepoint.com/sites/DMSPortal/Manuals/Forms/AllItems.aspx"
+                                target="_blank"
+                                style={{ color: 'rgba(255, 184, 28, 1)' }} >
+                                Manuals
+                                </a> & {' '}
+                                <a
+                                href="https://governingbodies.iom.int/"
+                                target="_blank"
+                                style={{ color: 'rgba(255, 184, 28, 1)' }} >
+                                Audit
                                 </a></h4>
                 </div>
             </header>

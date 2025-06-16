@@ -17,7 +17,7 @@ load_dotenv()
 # Setup environment (you likely already have this)
 api_key = os.getenv("AZURE_OPENAI_KEY")
 endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-api_version = os.getenv("AZURE_OPENAI_EMBED_VERSION")  # e.g. "2023-05-15"
+api_version = os.getenv("AZURE_OPENAI_EMBED_DEPLOYMENT_VERSION")  # e.g. "2023-05-15"
 deployment_name = os.getenv("AZURE_OPENAI_EMBED_DEPLOYMENT")  # Your Azure deployment name
 
 
@@ -32,12 +32,14 @@ client = AzureOpenAI(
 
 
 # === Config ===
-PDF_DIRS = ["../data/HR1", "../data/DMS_instructions1"]
+PDF_DIRS = ["../data/HR1", "../data/DMS_instructions1", "../data/DMS_Manual1", "../data/audit",]
 BASE_FILEURLS = ["https://hrhandbook.iom.int/system/files/policies/",
-                 "https://iomint.sharepoint.com/sites/DMSPortal/Instructions/"]
-DOCTYPES = ["HR Policy", "Administration Instruction"]
+                 "https://iomint.sharepoint.com/sites/DMSPortal/Instructions/",
+                 "https://iomint.sharepoint.com/sites/DMSPortal/Manuals/",
+                 "https://governingbodies.iom.int/"]
+DOCTYPES = ["HR Policy", "Administration Instruction", "Manuals",  "Audit"]
 
-OUTPUT_FILE = "seed_data_iom_all-small5.json"
+OUTPUT_FILE = "seed_data_iom_all-small7.json"
 
 
 # === File conversion ====
@@ -235,76 +237,104 @@ def fallback_pdfplumber_text(file_path):
         return []
 
 
+
 import re
-from typing import Optional
+from typing import Optional, List, Dict
 from datetime import datetime
+import unicodedata
+from collections import OrderedDict
 
-def clean_text(text: str) -> str:
+def clean_text(
+    text: str,
+    additional_headers_footers: Optional[List[str]] = None,
+    additional_typos: Optional[Dict[str, str]] = None,
+    min_paragraph_length: int = 20
+) -> str:
     """
-    Perform comprehensive text cleaning tasks, including handling encoding errors, removing noise,
-    and standardizing text format.
-
-    Args:
-        text (str): Extracted text from PDF or other sources.
-
-    Returns:
-        str: Cleaned text.
+    Cleans and standardizes text for use in RAG pipelines.
+    Handles encoding issues, noise removal, typo correction, and date normalization.
     """
-    # Handle encoding errors by removing non-printable characters
-    cleaned_text = ''.join(char for char in text if char.isprintable())
+    if not text:
+        return ""
 
-    # Remove excessive whitespace and newlines
-    cleaned_text = ' '.join(cleaned_text.split())
+    # Normalize unicode and remove non-printable characters
+    text = unicodedata.normalize('NFKC', text)
+    text = ''.join(c for c in text if c.isprintable() or c in {'\n', '\t'})
 
-    # Remove common headers, footers, and page numbers
-    headers_footers = [
-        r'Confidential Draft', r'Page \d+ of \d+',
-        r'\b\d+\b', r'\bFooter:\b.*?$', r'\bHeader:\b.*?$'
+    # Standardize spacing and line endings
+    text = re.sub(r'\r\n?', '\n', text)
+    text = re.sub(r'[ \t]+', ' ', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+
+    # Header/footer patterns
+    default_patterns = [
+        r'(?i)\bconfidential\b.*?\bdraft\b',
+        r'(?i)page\s*\d+\s*(of\s*\d+)?',
+        r'(?i)^footer:.*$',
+        r'(?i)^header:.*$',
+        r'^\s*\d{1,3}\s*$',
+        r'(?i)^this\s+document\s+is\s+proprietary\b.*$'
     ]
+    all_patterns = default_patterns + (additional_headers_footers or [])
 
-    for pattern in headers_footers:
-        cleaned_text = re.sub(pattern, '', cleaned_text, flags=re.MULTILINE)
+    for pattern in all_patterns:
+        text = re.sub(pattern, '', text, flags=re.MULTILINE)
 
-    # Correct common typos and errors
-    typo_corrections = {
+    # Correct typos
+    default_typos = {
         'polciy': 'policy',
         'departement': 'department',
         'adress': 'address',
-        'recieve': 'receive'
+        'recieve': 'receive',
+        'goverment': 'government',
+        'documen': 'document',
+        'teh': 'the',
+        'wether': 'whether'
     }
+    typos = {**default_typos, **(additional_typos or {})}
+    typo_pattern = re.compile('|'.join(rf'\b{re.escape(k)}\b' for k in typos), re.IGNORECASE)
 
-    for typo, correction in typo_corrections.items():
-        cleaned_text = re.sub(r'\b' + typo + r'\b', correction, cleaned_text)
+    def replace_typo(match):
+        return typos[match.group(0).lower()]
 
-    # Standardize date formats
-    def standardize_date(match):
+    text = typo_pattern.sub(replace_typo, text)
+
+    # Normalize dates
+    date_formats = [
+        ('%m/%d/%Y', r'\b\d{2}/\d{2}/\d{4}\b'),
+        ('%d-%b-%y', r'\b\d{2}-[a-zA-Z]{3}-\d{2}\b'),
+        ('%Y-%m-%d', r'\b\d{4}-\d{2}-\d{2}\b'),
+        ('%B %d, %Y', r'\b[A-Za-z]+ \d{1,2}, \d{4}\b'),
+        ('%b %d, %Y', r'\b[A-Za-z]{3} \d{1,2}, \d{4}\b')
+    ]
+
+    def normalize_date(match):
         date_str = match.group(0)
-        try:
-            date_obj = datetime.strptime(date_str, '%m/%d/%Y')
-            return date_obj.strftime('%Y-%m-%d')
-        except ValueError:
+        for fmt, _ in date_formats:
             try:
-                date_obj = datetime.strptime(date_str, '%d-%b-%y')
-                return date_obj.strftime('%Y-%m-%d')
+                return datetime.strptime(date_str, fmt).strftime('%Y-%m-%d')
             except ValueError:
-                return date_str
+                continue
+        return date_str
 
-    cleaned_text = re.sub(r'\d{2}/\d{2}/\d{4}|\d{2}-\w{3}-\d{2}', standardize_date, cleaned_text)
+    combined_date_pattern = '|'.join(fmt[1] for fmt in date_formats)
+    text = re.sub(combined_date_pattern, normalize_date, text)
 
-    # Remove duplicate paragraphs
-    paragraphs = cleaned_text.split('\n')
-    seen_paragraphs = set()
-    unique_paragraphs = []
+    # Deduplicate and filter short paragraphs
+    paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
+    seen = OrderedDict()
 
-    for paragraph in paragraphs:
-        if paragraph not in seen_paragraphs:
-            seen_paragraphs.add(paragraph)
-            unique_paragraphs.append(paragraph)
+    for para in paragraphs:
+        if len(para) >= min_paragraph_length:
+            key = re.sub(r'\s+', ' ', para.lower())
+            if key not in seen:
+                seen[key] = para
 
-    cleaned_text = '\n'.join(unique_paragraphs)
+    # Reconstruct cleaned text
+    final_text = '\n'.join(seen.values())
+    final_text = re.sub(r'\n{3,}', '\n\n', final_text).strip()
 
-
-    return cleaned_text
+    return final_text
 
 
 def extract_text_by_page(file_path):
