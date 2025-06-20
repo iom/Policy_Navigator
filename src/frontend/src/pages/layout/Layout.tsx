@@ -10,7 +10,7 @@ const Layout = () => {
                 <div className={styles.headerContainer}>
                     <Link to="/" className={styles.headerTitleContainer}>
                         <img src={Logo} alt="IOM" className={styles.headerLogo} />
-                        <h3 className={styles.headerTitle}>| Policies Navigator</h3>
+                        <h3 className={styles.headerTitle}>| Policies Navigator (beta version)</h3>
                     </Link>
                     <h4 className={styles.headerRightText}>Prompt <a href="https://hrhandbook.iom.int/hr-policy-framework"
                                 target="_blank"

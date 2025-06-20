@@ -19,6 +19,8 @@ interface Props {
     showFollowupQuestions?: boolean;
 }
 
+
+
 export const Answer = ({
     answer,
     isSelected,
@@ -35,6 +37,29 @@ export const Answer = ({
     const parsedAnswer = useMemo(() => parseAnswerToHtml(messageContent, isStreaming, onCitationClicked), [answer]);
 
     const sanitizedAnswerHtml = DOMPurify.sanitize(parsedAnswer.answerHtml);
+
+
+    const ImpactSummary = ({ question, impacts }: { question: string; impacts: any }) => {
+        if (!impacts?.energy?.value || !impacts?.gwp?.value) return null;
+
+        return (
+            <div style={{ fontSize: "0.85rem", color: "#555", padding: "4px 12px" }}>
+                ⚡ Energy used: {impacts.energy.value.toFixed(4)} kWh
+                (~{(impacts.energy.value / 0.06).toFixed(0)} mins of LED bulb usage)<br />
+                🌍 CO₂ emitted: {impacts.gwp.value.toFixed(4)} kg
+                (~{(impacts.gwp.value / 0.21 * 1000).toFixed(0)} m driven in a petrol car)<br />
+                📧 <a
+                    href={`mailto:elegoupil@iom.int?subject=Chat Feedback&body=Issue with response to: '${question}'%0A%0AAnswer given:%0A${encodeURIComponent(impacts.message?.content || "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => console.log('Feedback logged:', question, impacts.message?.content)}
+                >
+                    Report any issue with this response if needed
+                </a>
+            </div>
+        );
+    };
+
 
     return (
         <Stack className={`${styles.answerContainer} ${isSelected && styles.selected}`} verticalAlign="space-between">
@@ -56,6 +81,9 @@ export const Answer = ({
 
             <Stack.Item grow>
                 <div className={styles.answerText} dangerouslySetInnerHTML={{ __html: sanitizedAnswerHtml }}></div>
+                
+                <ImpactSummary question={answer.message.content} impacts={answer} />
+
             </Stack.Item>
 
             {!!parsedAnswer.citations.length && (

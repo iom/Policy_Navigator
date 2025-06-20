@@ -5,7 +5,7 @@ import styles from "./Example.module.css";
 const DEFAULT_EXAMPLES: string[] = [
 "What is the IOM policy on remote work and hybrid schedules?",
 "What provision are made for whistleblowers, and is it anonymous?",
-"What’s IOM policy concerning the use of Artificial Inteligence?",
+"What are IOM recommendations concerning the use of Artificial Inteligence?",
 ];
 
 interface Props {

@@ -5,6 +5,9 @@ from typing import Union
 import azure.identity
 import openai
 
+from ecologits import EcoLogits
+EcoLogits.init()
+
 logger = logging.getLogger("ragapp")
 
 

@@ -6,7 +6,7 @@
   {
     "id": "hr_policy_query",
     "call_id": "call_iom123",
-    "name": "search_hr_policies",
+    "name": "search_database",
     "arguments": "{\"search_query\":\"annual leave entitlement General Service\"}",
     "type": "function_call"
   },
@@ -23,7 +23,7 @@
   {
     "id": "hr_policy_query",
     "call_id": "call_iom456",
-    "name": "search_hr_policies",
+    "name": "search_database",
     "arguments": "{\"search_query\":\"probation period Professional category\"}",
     "type": "function_call"
   },

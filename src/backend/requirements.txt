@@ -316,3 +316,4 @@ yarl==1.18.3
     # via aiohttp
 zipp==3.21.0
     # via importlib-metadata
+ecologits[openai]

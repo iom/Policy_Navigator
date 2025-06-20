@@ -83,11 +83,19 @@ class RAGContext(BaseModel):
 class ErrorResponse(BaseModel):
     error: str
 
+class ImpactValue(BaseModel):
+    value: float
+
+class Impacts(BaseModel):
+    energy: Optional[ImpactValue] = None
+    gwp: Optional[ImpactValue] = None
+
 
 class RetrievalResponse(BaseModel):
     message: Message
     context: RAGContext
-    sessionState: Optional[Any] = None
+    sessionState: Optional[Any] = None    
+    impacts: Optional[Impacts] = None
 
 
 class RetrievalResponseDelta(BaseModel):

@@ -35,7 +35,7 @@ const Chat = () => {
     const [activeAnalysisPanelTab, setActiveAnalysisPanelTab] = useState<AnalysisPanelTabs | undefined>(undefined);
 
     const [selectedAnswer, setSelectedAnswer] = useState<number>(0);
-    const [answers, setAnswers] = useState<[user: string, response: RAGChatCompletion][]>([]);
+    const [answers, setAnswers] = useState<[user: string, response: RAGChatCompletion & { impacts?: any }][]>([]);
     const [streamedAnswers, setStreamedAnswers] = useState<[user: string, response: RAGChatCompletion][]>([]);
 
     const handleAsyncRequest = async (question: string, answers: [string, RAGChatCompletion][], result: AsyncIterable<RAGChatCompletionDelta>) => {
@@ -118,7 +118,11 @@ const Chat = () => {
                 setAnswers([...answers, [question, parsedResponse]]);
             } else {
                 const result = (await chatClient.getCompletion(allMessages, options)) as RAGChatCompletion;
-                setAnswers([...answers, [question, result]]);
+                const updatedResult = {
+                    ...result,
+                    impacts: (result as any).impacts ?? { energy: { value: null }, gwp: { value: null } }
+                };
+                setAnswers([...answers, [question, updatedResult]]);
             }
         } catch (e) {
             setError(e);
@@ -240,6 +244,7 @@ const Chat = () => {
                                                 onSupportingContentClicked={() => onToggleTab(AnalysisPanelTabs.SupportingContentTab, index)}
                                                 onFollowupQuestionClicked={q => makeApiRequest(q)}
                                             />
+
                                         </div>
                                     </div>
                                 ))}
@@ -296,7 +301,7 @@ const Chat = () => {
                     <Checkbox
                         className={styles.chatSettingsSeparator}
                         checked={useAdvancedFlow}
-                        label="Use advanced flow with query rewriting and filter formulation. Not compatible with Ollama models."
+                        label="Use advanced flow with query rewriting and filter formulation."
                         onChange={onUseAdvancedFlowChange}
                     />
 
@@ -313,13 +318,21 @@ const Chat = () => {
 
                     <VectorSettings updateRetrievalMode={(retrievalMode: RetrievalMode) => setRetrievalMode(retrievalMode)} />
 
-                    <h3>Settings for final chat completion:</h3>
+                    <h3>Settings for chat completion:</h3>
 
                     <TextField
                         className={styles.chatSettingsSeparator}
                         defaultValue={promptTemplate}
-                        label="Override prompt template"
+                        label="You can Override the current system prompt below:"
                         multiline
+                        placeholder="Assistant helps IOM staff with questions about Policies, Rules, Instructions, Manuals and Audit.
+                                    Respond as if you are an IOM policy expert helping a staff, in a personable and friendly tone. 
+                                    After you reply to any questions, systematically suggest two or three potential follow up questions.
+                                    Answer ONLY with elements referenced in any IOM HR Policies, Rules and Instructions.
+                                    If there isn't enough information below, say that you are not able to find a good reference in the documents that were made available to you.
+                                    Do not generate answers that don't use the sources below.
+                                    Use square brackets to reference the source, for example [52].
+                                    Don't combine citations, list each referenced sources separately, for example [27][51]. "
                         autoAdjustHeight
                         onChange={onPromptTemplateChange}
                     />
