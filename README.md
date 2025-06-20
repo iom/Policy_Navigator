@@ -1,6 +1,6 @@
 # Policy Navigator
 
-Policy Navigator is an AI-powered retrieval-augmented generation (RAG) application that enables instant, context-aware responses based on a large collection of internal policy documents. It is specifically tailored for accessing and navigating IOM [HR Policies](https://hrhandbook.iom.int/hr-policy-framework) and [Admin Instructions](https://iomint.sharepoint.com/sites/DMSPortal/Instructions/Forms/AllItems.aspx). 
+Policy Navigator is an AI-powered retrieval-augmented generation (RAG) application that enables instant, context-aware responses based on a large collection of internal policy documents. It is specifically tailored for accessing and navigating IOM [HR Policies](https://hrhandbook.iom.int/hr-policy-framework), [Admin Instructions](https://iomint.sharepoint.com/sites/DMSPortal/Instructions/Forms/AllItems.aspx) and [Audits](https://governingbodies.iom.int/). 
 
 
 This tool provides a user-friendly interface to search, summarize, and interact with complex policy content, significantly improving accessibility and comprehension for end users.
