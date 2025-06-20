@@ -117,7 +117,7 @@ numpy==2.0.2
     # via pgvector
 oauthlib==3.2.2
     # via requests-oauthlib
-openai==1.78.0
+openai==1.88.0
     # via
     #   fastapi-app (pyproject.toml)
     #   openai-agents
