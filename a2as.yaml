@@ -1,0 +1,230 @@
+manifest:
+  version: "0.1.2"
+  schema: https://a2as.org/cert/schema
+  subject:
+    name: iom/policy_navigator
+    source: https://github.com/iom/policy_navigator
+    branch: main
+    commit: "737ee80a"
+    scope: [src/backend/fastapi_app/rag_advanced.py, src/backend/fastapi_app/rag_simple.py, src/backend/fastapi_app/routes/api_routes.py]
+  issued:
+    by: A2AS.org
+    at: '2026-01-26T16:16:22Z'
+  signatures:
+    digest: sha256:ulGA-2_8fryOUY2ohJuYcC9QorsHW9Y0Btm1RIkJlvQ
+    key: ed25519:e3Bb8MDnlkLtar5j87GKtqCohpug62auZZl92v5JZbU
+    sig: ed25519:tWylyUyA9SPLKywsUgt3SiSqXDSsEFfLaFeXG-Ax1C5sMzrRqaT3YdR1Q5dTsnUhmkzgoxXFWiSzJIWMYHAfBw
+
+agents:
+  rag_flow:
+    type: instance
+    models: [openai_agents_model]
+    params:
+      class: SimpleRAGChat
+      name: Answerer
+      model_settings: ModelSettings(temperature=self.chat_params.temperature, max_tokens=self.chat_params.response_token_limit)
+  rag_flow.answer_agent:
+    type: instance
+    models: [openai_agents_model]
+    params:
+      class: AdvancedRAGChat
+      name: Answerer
+      model_settings: ModelSettings(temperature=self.chat_params.temperature, max_tokens=self.chat_params.response_token_limit)
+  rag_flow.search_agent:
+    type: instance
+    models: [openai_agents_model]
+    tools: [function_tool]
+    params:
+      class: AdvancedRAGChat
+      name: Searcher
+      tool_use_behavior: stop_on_first_tool
+
+models:
+  openai_agents_model:
+    type: variable
+    agents: [rag_flow.search_agent, rag_flow.answer_agent, rag_flow]
+
+tools:
+  function_tool:
+    type: module
+    agents: [rag_flow.search_agent]
+    params:
+      _args: [self.search_database]
+
+imports:
+  AdvancedRAGChat: fastapi_app.rag_advanced.AdvancedRAGChat
+  Agent: agents.Agent
+  AIChatRoles: fastapi_app.api_models.AIChatRoles
+  api_routes: fastapi_app.routes.api_routes
+  APIError: openai.APIError
+  async_sessionmaker: sqlalchemy.ext.asyncio.async_sessionmaker
+  AsyncAzureOpenAI: openai.AsyncAzureOpenAI
+  asynccontextmanager: contextlib.asynccontextmanager
+  AsyncGenerator: collections.abc.AsyncGenerator
+  AsyncIterator: collections.abc.AsyncIterator
+  AsyncOpenAI: openai.AsyncOpenAI
+  AsyncSession: sqlalchemy.ext.asyncio.AsyncSession
+  ChatClient: fastapi_app.dependencies.ChatClient
+  ChatRequest: fastapi_app.api_models.ChatRequest
+  ChatRequestOverrides: fastapi_app.api_models.ChatRequestOverrides
+  common_parameters: fastapi_app.dependencies.common_parameters
+  CommonDeps: fastapi_app.dependencies.CommonDeps
+  configure_azure_monitor: azure.monitor.opentelemetry.configure_azure_monitor
+  create_async_sessionmaker: fastapi_app.dependencies.create_async_sessionmaker
+  create_openai_chat_client: fastapi_app.openai_clients.create_openai_chat_client
+  create_openai_embed_client: fastapi_app.openai_clients.create_openai_embed_client
+  create_postgres_engine_from_env: fastapi_app.postgres_engine.create_postgres_engine_from_env
+  DBSession: fastapi_app.dependencies.DBSession
+  EasyInputMessageParam: openai.types.responses.EasyInputMessageParam
+  EmbeddingsClient: fastapi_app.dependencies.EmbeddingsClient
+  ErrorResponse: fastapi_app.api_models.ErrorResponse
+  fastapi: fastapi
+  FastAPIAppContext: fastapi_app.dependencies.FastAPIAppContext
+  Filter: fastapi_app.api_models.Filter
+  frontend_routes: fastapi_app.routes.frontend_routes
+  function_tool: agents.function_tool
+  get_azure_credential: fastapi_app.dependencies.get_azure_credential
+  HTTPException: fastapi.HTTPException
+  Item: fastapi_app.postgres_models.Item
+  ItemHelpers: agents.ItemHelpers
+  ItemPublic: fastapi_app.api_models.ItemPublic
+  ItemWithDistance: fastapi_app.api_models.ItemWithDistance
+  json: json
+  load_dotenv: dotenv.load_dotenv
+  logging: logging
+  Message: fastapi_app.api_models.Message
+  ModelSettings: agents.ModelSettings
+  OpenAIChatCompletionsModel: agents.OpenAIChatCompletionsModel
+  OpenAIInstrumentor: opentelemetry.instrumentation.openai.OpenAIInstrumentor
+  Optional: typing.Optional
+  os: os
+  PostgresSearcher: fastapi_app.postgres_searcher.PostgresSearcher
+  RAGChatBase: fastapi_app.rag_base.RAGChatBase
+  RAGContext: fastapi_app.api_models.RAGContext
+  ResponseInputItemParam: openai.types.responses.ResponseInputItemParam
+  ResponseTextDeltaEvent: openai.types.responses.ResponseTextDeltaEvent
+  RetrievalResponse: fastapi_app.api_models.RetrievalResponse
+  RetrievalResponseDelta: fastapi_app.api_models.RetrievalResponseDelta
+  Runner: agents.Runner
+  SearchResults: fastapi_app.api_models.SearchResults
+  select: sqlalchemy.select
+  set_tracing_disabled: agents.set_tracing_disabled
+  SimpleRAGChat: fastapi_app.rag_simple.SimpleRAGChat
+  SQLAlchemyInstrumentor: opentelemetry.instrumentation.sqlalchemy.SQLAlchemyInstrumentor
+  StreamingResponse: fastapi.responses.StreamingResponse
+  text: sqlalchemy.text
+  ThoughtStep: fastapi_app.api_models.ThoughtStep
+  ToolCallOutputItem: agents.ToolCallOutputItem
+  TypedDict: typing.TypedDict
+  Union: typing.Union
+
+functions:
+  __init__:
+    type: sync
+    module: src.backend.fastapi_app.rag_simple
+    args: [self]
+  answer:
+    type: async
+    module: src.backend.fastapi_app.rag_simple
+    args: [self, items, earlier_thoughts]
+    params:
+      returns: RetrievalResponse
+  answer_stream:
+    type: async
+    module: src.backend.fastapi_app.rag_simple
+    args: [self, items, earlier_thoughts]
+    params:
+      returns: AsyncGenerator
+  chat_handler:
+    type: async
+    module: src.backend.fastapi_app.routes.api_routes
+    args: [context, database_session, openai_embed, openai_chat, chat_request]
+  chat_stream_handler:
+    type: async
+    module: src.backend.fastapi_app.routes.api_routes
+    args: [context, database_session, openai_embed, openai_chat, chat_request]
+  create_app:
+    type: sync
+    module: src.backend.fastapi_app
+    args: [testing]
+  format_as_ndjson:
+    type: async
+    module: src.backend.fastapi_app.routes.api_routes
+    args: [r]
+    params:
+      returns: AsyncGenerator
+  item_handler:
+    type: async
+    module: src.backend.fastapi_app.routes.api_routes
+    args: [database_session, id]
+    params:
+      returns: ItemPublic
+  lifespan:
+    type: async
+    module: src.backend.fastapi_app
+    args: [app]
+    params:
+      returns: AsyncIterator[State]
+  prepare_context:
+    type: async
+    module: src.backend.fastapi_app.rag_simple
+    args: [self]
+    params:
+      returns: tuple
+  search_database:
+    type: async
+    module: src.backend.fastapi_app.rag_advanced
+    args: [self, search_query]
+    params:
+      returns: SearchResults
+  search_handler:
+    type: async
+    module: src.backend.fastapi_app.routes.api_routes
+    args: [context, database_session, openai_embed, query, top, enable_vector_search, enable_text_search]
+    params:
+      returns: list[ItemPublic]
+  similar_handler:
+    type: async
+    module: src.backend.fastapi_app.routes.api_routes
+    args: [context, database_session, id, n]
+    params:
+      returns: list[ItemWithDistance]
+
+variables:
+  APPLICATIONINSIGHTS_CONNECTION_STRING:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.backend.fastapi_app]
+  OPENAI_CHAT_HOST:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.backend.fastapi_app]
+  OPENAI_EMBED_HOST:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.backend.fastapi_app]
+  POSTGRES_HOST:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.backend.fastapi_app]
+  RUNNING_IN_PRODUCTION:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [src.backend.fastapi_app]
+
+files:
+  query.txt:
+    type: literal
+    actions: [read]
+    params:
+      path: [RAGChatBase.prompts_dir]
+  query_fewshots.json:
+    type: literal
+    actions: [read]
+    params:
+      path: [RAGChatBase.prompts_dir]
